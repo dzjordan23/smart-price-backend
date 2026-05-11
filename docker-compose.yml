@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: smart_price_api
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=root
+      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - DB_DATABASE=smart_price
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGO_URI=mongodb://mongo:27017/smart_price
+      - JWT_SECRET=${JWT_SECRET}
+      - WECHAT_APPID=${WECHAT_APPID}
+      - WECHAT_SECRET=${WECHAT_SECRET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    networks:
+      - smart_price_net
+
+  mysql:
+    image: mysql:8.0
+    container_name: smart_price_mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=smart_price
+      - MYSQL_CHARSET=utf8mb4
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smart_price_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: smart_price_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smart_price_net
+
+  mongo:
+    image: mongo:7
+    container_name: smart_price_mongo
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - smart_price_net
+
+volumes:
+  mysql_data:
+  redis_data:
+  mongo_data:
+
+networks:
+  smart_price_net:
+    driver: bridge
