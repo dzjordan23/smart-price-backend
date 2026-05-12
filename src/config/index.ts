@@ -11,13 +11,51 @@ export const jwtConfig = registerAs('jwt', () => ({
   expiresIn: process.env['JWT_EXPIRES_IN'] || '7d',
 }));
 
-export const dbConfig = registerAs('database', () => ({
-  host: process.env['DB_HOST'] || 'localhost',
-  port: parseInt(process.env['DB_PORT'] ?? '3306', 10) || 3306,
-  username: process.env['DB_USERNAME'] || 'root',
-  password: process.env['DB_PASSWORD'] || '',
-  database: process.env['DB_DATABASE'] || 'smart_price',
-}));
+export const dbConfig = registerAs('database', () => {
+  // 优先级1: DATABASE_URL（Railway/Render/Heroku 通用）
+  // 优先级2: Railway MySQL 插件独立变量（MYSQLHOST, MYSQLPORT, MYSQLUSER...）
+  // 优先级3: 自定义变量（DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_DATABASE）
+  // 优先级4: 本地开发默认值
+
+  const databaseUrl = process.env['DATABASE_URL'];
+  if (databaseUrl) {
+    // 把 URL 拆成独立字段，TypeORM 的 url 参数有时有兼容问题
+    try {
+      const u = new URL(databaseUrl);
+      return {
+        host: u.hostname,
+        port: parseInt(u.port ?? '3306', 10) || 3306,
+        username: u.username,
+        password: u.password,
+        database: u.pathname.replace(/^\//, ''),
+        url: databaseUrl,
+      };
+    } catch {
+      // URL 解析失败，继续尝试其他变量
+    }
+  }
+
+  // Railway MySQL 插件注入的独立变量
+  const mysqlHost = process.env['MYSQLHOST'] || process.env['MYSQL_HOST'];
+  if (mysqlHost) {
+    return {
+      host: mysqlHost,
+      port: parseInt(process.env['MYSQLPORT'] ?? '3306', 10) || (parseInt(process.env['MYSQL_PORT'] ?? '3306', 10) || 3306),
+      username: process.env['MYSQLUSER'] || process.env['MYSQL_USER'] || 'root',
+      password: process.env['MYSQLPASSWORD'] || process.env['MYSQL_PASSWORD'] || '',
+      database: process.env['MYSQLDATABASE'] || process.env['MYSQL_DATABASE'] || 'smart_price',
+    };
+  }
+
+  // 自定义变量 → 本地开发默认值
+  return {
+    host: process.env['DB_HOST'] || 'localhost',
+    port: parseInt(process.env['DB_PORT'] ?? '3306', 10) || 3306,
+    username: process.env['DB_USERNAME'] || 'root',
+    password: process.env['DB_PASSWORD'] || '',
+    database: process.env['DB_DATABASE'] || 'smart_price',
+  };
+});
 
 export const redisConfig = registerAs('redis', () => {
   // 支持 Railway 自动注入的 REDIS_URL

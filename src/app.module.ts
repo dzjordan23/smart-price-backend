@@ -55,41 +55,45 @@ export class HealthController {
       { ttl: 60000, limit: 60 }, // 60次/分钟
     ]),
 
-    // MySQL —— 支持 DATABASE_URL（Railway）或独立环境变量
+    // MySQL —— 支持 DATABASE_URL / Railway MYSQLHOST* / 自定义 DB_* / 本地默认值
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
-        const databaseUrl = process.env['DATABASE_URL'];
-        if (databaseUrl) {
-          console.log(`[DB] Using DATABASE_URL (host: ${new URL(databaseUrl).hostname})`);
-          return {
-            type: 'mysql' as const,
-            url: databaseUrl,
-            entities: [User, Product, Category, ProductPrice, PriceWatch, PurchaseRecord],
-            synchronize: true,
-            charset: 'utf8mb4',
-            timezone: '+08:00',
-            ssl: { rejectUnauthorized: false },
-          };
-        }
-        // Railway 环境下 DATABASE_URL 为空说明 MySQL 插件未正确关联
-        const host = config.get<string>('database.host');
-        const port = config.get<number>('database.port');
-        console.warn(`[DB] DATABASE_URL not set, falling back to host=${host}:${port}`);
-        console.warn('[DB] If on Railway: make sure MySQL plugin is added and referenced by this service');
-        return {
-          type: 'mysql' as const,
+        const db = config.get('database') as any;
+        const host = db.host;
+        const port = db.port;
+        console.log(`[DB] Connecting to ${host}:${port}, database=${db.database}, user=${db.username}`);
+
+        const opts: Record<string, any> = {
+          type: 'mysql',
           host,
           port,
-          username: config.get<string>('database.username'),
-          password: config.get<string>('database.password'),
-          database: config.get<string>('database.database'),
+          username: db.username,
+          password: db.password,
+          database: db.database,
           entities: [User, Product, Category, ProductPrice, PriceWatch, PurchaseRecord],
           synchronize: true,
-          logging: false,
           charset: 'utf8mb4',
           timezone: '+08:00',
         };
+
+        // 如果有完整 URL（DATABASE_URL），直接用 url 连接
+        if (db.url) {
+          opts.url = db.url;
+          delete opts.host;
+          delete opts.port;
+          delete opts.username;
+          delete opts.password;
+          delete opts.database;
+          opts.ssl = { rejectUnauthorized: false };
+        }
+
+        // Railway 内网连接不需要 SSL
+        if (host && (host.includes('.railway.app') || host.includes('.railway.internal'))) {
+          delete opts.ssl;
+        }
+
+        return opts;
       },
     }),
 
