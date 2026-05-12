@@ -19,11 +19,27 @@ export const dbConfig = registerAs('database', () => ({
   database: process.env['DB_DATABASE'] || 'smart_price',
 }));
 
-export const redisConfig = registerAs('redis', () => ({
-  host: process.env['REDIS_HOST'] || 'localhost',
-  port: parseInt(process.env['REDIS_PORT'] ?? '6379', 10) || 6379,
-  password: process.env['REDIS_PASSWORD'] || undefined,
-}));
+export const redisConfig = registerAs('redis', () => {
+  // 支持 Railway 自动注入的 REDIS_URL
+  const redisUrl = process.env['REDIS_URL'];
+  if (redisUrl) {
+    try {
+      const url = new URL(redisUrl);
+      return {
+        host: url.hostname,
+        port: parseInt(url.port ?? '6379', 10) || 6379,
+        password: url.password || undefined,
+      };
+    } catch {
+      // URL 解析失败，继续走独立变量
+    }
+  }
+  return {
+    host: process.env['REDIS_HOST'] || 'localhost',
+    port: parseInt(process.env['REDIS_PORT'] ?? '6379', 10) || 6379,
+    password: process.env['REDIS_PASSWORD'] || undefined,
+  };
+});
 
 export const mongoConfig = registerAs('mongo', () => ({
   uri: process.env['MONGO_URI'] || 'mongodb://localhost:27017/smart_price',

@@ -12,7 +12,8 @@ async function bootstrap() {
   });
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('app.port') || 3000;
+  // 端口：优先 Railway/Render 等平台注入的 PORT
+  const port = parseInt(process.env['PORT'] ?? '', 10) || configService.get<number>('app.port') || 3000;
   const nodeEnv = configService.get<string>('app.nodeEnv');
 
   // 全局前缀
