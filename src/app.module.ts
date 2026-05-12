@@ -1,7 +1,6 @@
 import { Module, Controller, Get } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 import {
@@ -62,7 +61,6 @@ export class HealthController {
       useFactory: (config: ConfigService) => {
         const databaseUrl = process.env['DATABASE_URL'];
         if (databaseUrl) {
-          // Railway 提供 DATABASE_URL，直接使用
           return {
             type: 'mysql' as const,
             url: databaseUrl,
@@ -75,27 +73,22 @@ export class HealthController {
         }
         return {
           type: 'mysql' as const,
-          host: config.get('database.host'),
-          port: config.get('database.port'),
-          username: config.get('database.username'),
-          password: config.get('database.password'),
-          database: config.get('database.database'),
+          host: config.get<string>('database.host'),
+          port: config.get<number>('database.port'),
+          username: config.get<string>('database.username'),
+          password: config.get<string>('database.password'),
+          database: config.get<string>('database.database'),
           entities: [User, Product, Category, ProductPrice, PriceWatch, PurchaseRecord],
-          synchronize: config.get('app.nodeEnv') !== 'production',
-          logging: config.get('app.nodeEnv') === 'development',
+          synchronize: config.get<string>('app.nodeEnv') !== 'production',
+          logging: config.get<string>('app.nodeEnv') === 'development',
           charset: 'utf8mb4',
           timezone: '+08:00',
         };
       },
     }),
 
-    // MongoDB —— 支持 MONGO_URL 或 MONGO_URI
-    MongooseModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        uri: process.env['MONGO_URL'] || config.get('mongo.uri'),
-      }),
-    }),
+    // MongoDB 已禁用（Railway 免费账号限制，后续可通过 Atlas 接入）
+    // MongooseModule.forRootAsync({ ... }),
 
     // 业务模块
     AuthModule,

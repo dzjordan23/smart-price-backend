@@ -1,19 +1,15 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ProductController } from './product.controller';
 import { ProductService } from './product.service';
 import { Product } from '../../database/entities/product.entity';
 import { ProductPrice } from '../../database/entities/price.entity';
-import { ProductSnapshot, ProductSnapshotSchema } from '../../database/schemas';
 import { CrawlerModule } from '../crawler/crawler.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Product, ProductPrice]),
-    MongooseModule.forFeature([
-      { name: ProductSnapshot.name, schema: ProductSnapshotSchema },
-    ]),
+    // MongooseModule.forFeature 已禁用（MongoDB 暂不可用）
     CrawlerModule,
   ],
   controllers: [ProductController],

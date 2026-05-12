@@ -1,12 +1,9 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { v4 as uuidv4 } from 'uuid';
 import { Product } from '../../database/entities/product.entity';
 import { ProductPrice } from '../../database/entities/price.entity';
-import { ProductSnapshot, ProductSnapshotDocument } from '../../database/schemas';
 import { CrawlerService } from '../crawler/crawler.service';
 import { CompareDto, RecognizeDto, RecognizeType } from './dto/product.dto';
 
@@ -22,8 +19,6 @@ export class ProductService {
     private readonly productRepo: Repository<Product>,
     @InjectRepository(ProductPrice)
     private readonly priceRepo: Repository<ProductPrice>,
-    @InjectModel(ProductSnapshot.name)
-    private readonly snapshotModel: Model<ProductSnapshotDocument>,
     private readonly crawlerService: CrawlerService,
   ) {}
 
@@ -31,7 +26,6 @@ export class ProductService {
 
   async recognize(dto: RecognizeDto) {
     if (dto.type === RecognizeType.KEYWORD) {
-      // 关键词模式直接返回
       return {
         recognized: {
           name: dto.keyword,
@@ -45,7 +39,6 @@ export class ProductService {
     }
 
     if (dto.type === RecognizeType.IMAGE && dto.imageUrl) {
-      // 调用腾讯云OCR（简化版，实际需要引入腾讯云SDK）
       return {
         recognized: {
           name: '请根据图片手动确认商品名称',
@@ -67,7 +60,6 @@ export class ProductService {
     const taskId = uuidv4();
     taskStore.set(taskId, { status: 'processing' });
 
-    // 创建商品记录
     const product = await this.productRepo.save(
       this.productRepo.create({
         userId,
@@ -81,7 +73,6 @@ export class ProductService {
       }),
     );
 
-    // 异步执行爬虫任务（不等待）
     this.runCrawlTask(taskId, product.id, dto).catch((err) => {
       this.logger.error(`爬虫任务 ${taskId} 失败: ${err.message}`);
       taskStore.set(taskId, { status: 'failed' });
@@ -123,21 +114,8 @@ export class ProductService {
       priceEntity.crawledAt = now;
       prices.push(priceEntity);
 
-      // 保存快照到 MongoDB
-      await this.snapshotModel.findOneAndUpdate(
-        { productId, platform: r.platform },
-        {
-          $push: {
-            snapshots: {
-              price: r.salePrice,
-              finalPrice: r.finalPrice,
-              couponInfo: r.couponInfo,
-              crawledAt: now,
-            },
-          },
-        },
-        { upsert: true },
-      );
+      // MongoDB 快照已禁用（暂不可用），仅保存到 MySQL
+      // await this.snapshotModel.findOneAndUpdate(...)
     }
 
     await this.priceRepo.save(prices);
@@ -175,25 +153,26 @@ export class ProductService {
     return { list, total, page, pageSize };
   }
 
-  // ─── 历史价格走势 ────────────────────────────────────────────────────────
+  // ─── 历史价格走势（暂用 MySQL，不依赖 MongoDB） ──────────────────────────
 
-  async getPriceHistory(productId: number, days = 30) {
+  async getPriceHistory(productId: number, _days = 30) {
     const product = await this.productRepo.findOne({
       where: { id: productId },
     });
     if (!product) throw new NotFoundException('商品不存在');
 
-    const snapshots = await this.snapshotModel
-      .find({ productId })
-      .sort({ createdAt: -1 })
-      .limit(days)
-      .exec();
+    const prices = await this.priceRepo.find({
+      where: { productId },
+      order: { crawledAt: 'DESC' },
+      take: _days,
+    });
 
     return {
       productName: product.name,
-      history: snapshots.map((s) => ({
-        date: (s as any).createdAt?.toISOString().split('T')[0],
-        snapshots: s.snapshots.slice(-1)[0],
+      history: prices.map((p) => ({
+        date: p.crawledAt?.toISOString().split('T')[0],
+        platform: p.platform,
+        finalPrice: Number(p.finalPrice),
       })),
     };
   }
