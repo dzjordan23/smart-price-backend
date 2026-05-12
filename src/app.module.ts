@@ -61,6 +61,7 @@ export class HealthController {
       useFactory: (config: ConfigService) => {
         const databaseUrl = process.env['DATABASE_URL'];
         if (databaseUrl) {
+          console.log(`[DB] Using DATABASE_URL (host: ${new URL(databaseUrl).hostname})`);
           return {
             type: 'mysql' as const,
             url: databaseUrl,
@@ -71,16 +72,21 @@ export class HealthController {
             ssl: { rejectUnauthorized: false },
           };
         }
+        // Railway 环境下 DATABASE_URL 为空说明 MySQL 插件未正确关联
+        const host = config.get<string>('database.host');
+        const port = config.get<number>('database.port');
+        console.warn(`[DB] DATABASE_URL not set, falling back to host=${host}:${port}`);
+        console.warn('[DB] If on Railway: make sure MySQL plugin is added and referenced by this service');
         return {
           type: 'mysql' as const,
-          host: config.get<string>('database.host'),
-          port: config.get<number>('database.port'),
+          host,
+          port,
           username: config.get<string>('database.username'),
           password: config.get<string>('database.password'),
           database: config.get<string>('database.database'),
           entities: [User, Product, Category, ProductPrice, PriceWatch, PurchaseRecord],
-          synchronize: config.get<string>('app.nodeEnv') !== 'production',
-          logging: config.get<string>('app.nodeEnv') === 'development',
+          synchronize: true,
+          logging: false,
           charset: 'utf8mb4',
           timezone: '+08:00',
         };
