@@ -7,6 +7,13 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
 async function bootstrap() {
+  // 先打日志确认启动入口（方便 Railway 部署排查）
+  console.log('[bootstrap] Starting SmartPrice backend...');
+  console.log(`[bootstrap] NODE_ENV=${process.env.NODE_ENV}`);
+  console.log(`[bootstrap] PORT=${process.env.PORT}`);
+  console.log(`[bootstrap] DATABASE_URL=${process.env.DATABASE_URL ? '***set***' : 'undefined'}`);
+  console.log(`[bootstrap] REDIS_URL=${process.env.REDIS_URL ? '***set***' : 'undefined'}`);
+
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });

@@ -24,9 +24,8 @@ COPY --from=builder /app/dist ./dist
 
 ENV NODE_ENV=production
 
-EXPOSE 3000
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -qO- http://localhost:3000/v1/health || exit 1
+# 不设 Docker HEALTHCHECK —— Railway 用自己的 network healthcheck
+# Railway 自动注入 PORT，应用已优先读取
+EXPOSE ${PORT:-3000}
 
 CMD ["node", "dist/main.js"]

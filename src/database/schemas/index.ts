@@ -1,59 +1,19 @@
-import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+// ─────────────────────────────────────────────
+// MongoDB Schemas — 已禁用（Railway 免费账号限制）
+// 后续可通过 MongoDB Atlas 重新启用
+// ─────────────────────────────────────────────
 
-export type ProductSnapshotDocument = ProductSnapshot & Document;
+// import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+// import { Document } from 'mongoose';
 
-@Schema({ collection: 'product_snapshots', timestamps: true })
-export class ProductSnapshot {
-  @Prop({ required: true, index: true })
-  productId: number;
+// export type ProductSnapshotDocument = ProductSnapshot & Document;
 
-  @Prop({ required: true, index: true })
-  platform: string;
+// @Schema({ collection: 'product_snapshots', timestamps: true })
+// export class ProductSnapshot { ... }
 
-  @Prop({ type: Array, default: [] })
-  snapshots: {
-    price: number;
-    finalPrice: number;
-    couponInfo?: object;
-    crawledAt: Date;
-  }[];
-}
+// export const ProductSnapshotSchema = SchemaFactory.createForClass(ProductSnapshot);
 
-export const ProductSnapshotSchema =
-  SchemaFactory.createForClass(ProductSnapshot);
+// @Schema({ collection: 'crawler_logs', timestamps: true })
+// export class CrawlerLog { ... }
 
-// ───────────────────────────────────────────────
-
-export type CrawlerLogDocument = CrawlerLog & Document;
-
-@Schema({ collection: 'crawler_logs', timestamps: true })
-export class CrawlerLog {
-  @Prop({ required: true })
-  taskId: string;
-
-  @Prop({ required: true, index: true })
-  platform: string;
-
-  @Prop()
-  url: string;
-
-  @Prop({ index: true })
-  status: string; // 'success' | 'failed' | 'timeout'
-
-  @Prop()
-  durationMs: number;
-
-  @Prop()
-  proxyUsed: string;
-
-  @Prop()
-  errorMessage: string;
-
-  @Prop({ type: Object })
-  rawData: object;
-}
-
-export const CrawlerLogSchema = SchemaFactory.createForClass(CrawlerLog);
-// TTL index: auto-delete logs after 30 days
-CrawlerLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 30 * 24 * 3600 });
+// export const CrawlerLogSchema = SchemaFactory.createForClass(CrawlerLog);
