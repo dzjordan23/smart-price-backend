@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsEnum, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export enum RecognizeType {
@@ -24,26 +24,38 @@ export class RecognizeDto {
 }
 
 export class CompareDto {
-  @ApiProperty({ description: '商品名称' })
+  @ApiProperty({ description: '商品名称/关键词', required: false })
+  @IsOptional()
   @IsString()
-  name: string;
+  keyword?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ description: '商品名称（兼容旧字段）', required: false })
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @ApiProperty({ description: '品牌', required: false })
   @IsOptional()
   @IsString()
   brand?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ description: '规格描述', required: false })
   @IsOptional()
   @IsString()
   spec?: string;
 
-  @ApiProperty({ required: false })
+  @ApiProperty({ description: '商品图片URL', required: false })
   @IsOptional()
   @IsString()
   imageUrl?: string;
 
-  @ApiProperty({ description: '要比较的平台', isArray: true })
+  @ApiProperty({ description: '商品ID（已有商品时使用）', required: false })
+  @IsOptional()
+  @IsNumber()
+  productId?: number;
+
+  @ApiProperty({ description: '要比较的平台', isArray: true, required: false })
+  @IsOptional()
   @IsArray()
-  platforms: string[];
+  platforms?: string[];
 }

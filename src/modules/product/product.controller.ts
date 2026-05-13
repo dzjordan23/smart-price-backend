@@ -16,7 +16,6 @@ import { RecognizeDto, CompareDto } from './dto/product.dto';
 
 @ApiTags('商品比价')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard)
 @Controller('products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
@@ -29,8 +28,8 @@ export class ProductController {
 
   @Post('compare')
   @ApiOperation({ summary: '创建比价任务' })
-  compare(@CurrentUser() user: User, @Body() dto: CompareDto) {
-    return this.productService.createCompareTask(user.id, dto);
+  compare(@Body() dto: CompareDto) {
+    return this.productService.createCompareTaskAnonymous(dto);
   }
 
   @Get('compare/:taskId/result')
@@ -56,5 +55,17 @@ export class ProductController {
     @Query('days') days = 30,
   ) {
     return this.productService.getPriceHistory(+id, +days);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: '获取商品详情' })
+  getProduct(@Param('id') id: number) {
+    return this.productService.getProductById(+id);
+  }
+
+  @Get('health')
+  @ApiOperation({ summary: '健康检查' })
+  health() {
+    return { status: 'ok', timestamp: new Date().toISOString() };
   }
 }

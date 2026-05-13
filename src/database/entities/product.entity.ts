@@ -32,6 +32,8 @@ export class Category {
 }
 
 @Entity('products')
+@Index('idx_products_name_fulltext', ['name'], { fulltext: true })
+@Index('idx_products_standard_name_fulltext', ['standardName'], { fulltext: true })
 export class Product {
   @PrimaryGeneratedColumn('increment', { type: 'bigint' })
   id: number;
