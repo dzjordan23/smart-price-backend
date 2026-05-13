@@ -5,17 +5,12 @@ import {
   Body,
   Param,
   Query,
-  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ProductService } from './product.service';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { User } from '../../database/entities/user.entity';
 import { RecognizeDto, CompareDto } from './dto/product.dto';
 
 @ApiTags('商品比价')
-@ApiBearerAuth()
 @Controller('products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
@@ -27,7 +22,7 @@ export class ProductController {
   }
 
   @Post('compare')
-  @ApiOperation({ summary: '创建比价任务' })
+  @ApiOperation({ summary: '创建比价任务（匿名用户可用）' })
   compare(@Body() dto: CompareDto) {
     return this.productService.createCompareTaskAnonymous(dto);
   }
